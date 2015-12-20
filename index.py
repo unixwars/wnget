@@ -8,7 +8,7 @@ ENTRY_TEMPLATE = '<a href="%s">%s</a><br/>\n'  # %(link, title)
 
 class Index(object):
     """
-    Create index files, suitable as TOC epub TOC
+    Index objects create index files suitable for Epub TOC creation
     """
     def __init__(self, filename):
         self.filename = filename
