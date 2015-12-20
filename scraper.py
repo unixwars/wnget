@@ -1,3 +1,4 @@
+from lxml import html
 import requests
 import os
 
@@ -20,9 +21,11 @@ for tgt in TARGET_TOUPLES:
             continue
 
         print 'File: %s' % fname
-        req = requests.get(URL_TPL % (novel, book, chapter))
+        url = URL_TPL % (novel, book, chapter)
+        page = requests.get(url)
+        tree = html.fromstring(page.content)
+
         with open(fname, 'w') as f:
-            st = req.text.replace('<hr>', '<hr/>')
-            st = st.split('<hr/>')
-            txt = st[1] + '<hr>\n'
-            f.write(txt.encode('utf8'))
+            content = tree.xpath('//div[@class="entry-content"]')[0].text_content()
+            #next_link = tree.xpath('//div[@class="entry-content"]/p[1]/span/a/@href')[0]
+            f.write(content.encode('utf8'))
