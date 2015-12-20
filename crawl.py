@@ -9,7 +9,7 @@ NEXT_STR = 'Next Chapter'
 PREV_STR = 'Previous Chapter'
 T_CLASS = 'entry-title'
 C_CLASS = 'entry-content'
-
+DEFAULT_CONNECTION_TIMEOUT = 5  # seconds
 
 class Crawler(object):
     """
@@ -76,7 +76,7 @@ class Crawler(object):
                                       ' *' if os.path.isfile(fname) else '')
 
             try:
-                with eventlet.Timeout(5):
+                with eventlet.Timeout(DEFAULT_CONNECTION_TIMEOUT):
                     page = requests.get(next_url)
                     next_url = None
             except eventlet.Timeout:
