@@ -83,7 +83,7 @@ class Crawler(object):
                 print 'Timed out!'
                 continue
 
-            tree = lxml.html.fromstring(page.content)
+            tree = lxml.html.fromstring(page.content.decode('utf8'))
             title = self._get_title(tree, fname)
             content = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
             content, next_url = self._process_nav(content, with_navlinks)
@@ -94,4 +94,12 @@ class Crawler(object):
             if os.path.isfile(fname):
                 continue
 
-            lxml.etree.ElementTree(content).write(fname, pretty_print=True)
+            self._write_html(content, fname)
+
+    def _write_html(self, content, fname):
+        html = lxml.etree.Element('html')
+        head = lxml.etree.SubElement(html, 'head')
+        meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
+        body = lxml.etree.SubElement(html, 'body')
+        body.append(content)
+        lxml.etree.ElementTree(html).write(fname, encoding='utf8', pretty_print=True)

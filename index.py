@@ -1,10 +1,4 @@
-TOP_TEMPLATE = """<html>\n<body>
-<h1>TOC</h1>
-<p style="text-indent:0pt">\n"""
-
-BOTTOM_TEMPLATE = '</p>\n</body>\n</html>\n'
-ENTRY_TEMPLATE = '<a href="%s">%s</a><br/>\n'  # %(link, title)
-
+import lxml.etree
 
 class Index(object):
     """
@@ -14,16 +8,24 @@ class Index(object):
         self.filename = filename
 
     def __enter__(self):
-        if self.filename:
-            self.f = open(self.filename, 'w')
-            self.f.write(TOP_TEMPLATE)
+        if self.filename is not None:
+            self.entries = lxml.etree.Element('p', style="text-indent:0pt")
         return self
 
     def __exit__(self, type, value, traceback):
-        if self.f:
-            self.f.write(BOTTOM_TEMPLATE)
-            return self.f.__exit__(type, value, traceback)
+        if self.entries is not None:
+            html = lxml.etree.Element('body')
+            head = lxml.etree.SubElement(html, 'head')
+            meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
+            body = lxml.etree.SubElement(html, 'body')
+            h1 = lxml.etree.SubElement(body, 'h1')
+            h1.text = 'TOC'
+            body.append(self.entries)
+
+            lxml.etree.ElementTree(html).write(self.filename, encoding='utf8', pretty_print=True)
 
     def update(self, link, title):
-        if self.f:
-            self.f.write(ENTRY_TEMPLATE % (link, title))
+        if self.entries is not None:
+            entry = lxml.etree.SubElement(self.entries, 'a', href=link)
+            entry.text = title
+            br = lxml.etree.SubElement(self.entries, 'br')
