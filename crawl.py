@@ -4,6 +4,7 @@ import requests
 import os
 import eventlet
 import index
+import epub
 
 NEXT_STR = 'Next Chapter'
 PREV_STR = 'Previous Chapter'
@@ -23,12 +24,16 @@ class Crawler(object):
         self.title_class = title_class
         self.content_class = content_class
 
-    def crawl(self, url, with_navlinks=False, index_file=None):
+    def crawl(self, url, with_navlinks=False, index_file=None, epub_file=None):
         "Crawl given url, rewriting/deleting navigation links, and " + \
             "overwriting index file if provided"
 
         with index.Index(index_file) as indexer:
-            self._crawl(url, with_navlinks, indexer)
+            html_files = self._crawl(url, with_navlinks, indexer)
+
+        if epub_file is not None:
+            html_files = filter(None, [index_file] + html_files)
+            epub.create_epub(epub_file, html_files)
 
     def _get_title(self, tree, default_title=''):
         # Wuxiaworld titles are inconsistent among creations. The ones
@@ -40,7 +45,8 @@ class Crawler(object):
             default_title = titles[0].text_content()
         if strongs:
             default_title = strongs[0].text_content()
-        return default_title
+
+        return default_title.strip()
 
     def _url_to_filename(self, url):
         url = url or ''
@@ -70,6 +76,7 @@ class Crawler(object):
 
         eventlet.monkey_patch()  # eventlet magic...
 
+        html_files = []
         while next_url:
             fname = self._url_to_filename(next_url)
             print 'URL: %s (%s%s)' % (next_url,  fname,
@@ -91,15 +98,21 @@ class Crawler(object):
             if indexer:
                 indexer.update(fname, title)
 
+            html_files.append(fname)
             if os.path.isfile(fname):
                 continue
 
             self._write_html(content, fname)
 
+        return html_files
+
     def _write_html(self, content, fname):
-        html = lxml.etree.Element('html')
+        html = lxml.etree.Element('html', xmlns="http://www.w3.org/1999/xhtml")
         head = lxml.etree.SubElement(html, 'head')
         meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
         body = lxml.etree.SubElement(html, 'body')
         body.append(content)
-        lxml.etree.ElementTree(html).write(fname, encoding='utf8', pretty_print=True)
+        lxml.etree.ElementTree(html).write(fname,
+                                           encoding='utf8',
+                                           doctype='<!DOCTYPE html>',
+                                           pretty_print=True)

@@ -63,6 +63,12 @@ def main():
         dest="content_class",
         help="Specify content container class. Default: %s." % crawl.C_CLASS)
 
+    p.add_option(
+        '--epub', '-e',
+        default=None,
+        dest="epub_name",
+        help="Create an Epub with this name.")
+
     opts, args = p.parse_args()
 
     if len(args) != 1:
@@ -72,7 +78,7 @@ def main():
     crawler = crawl.Crawler(opts.next_str, opts. prev_str,
                     opts.title_class, opts.content_class)
 
-    crawler.crawl(args[0], opts.navlinks, index_file)
+    crawler.crawl(args[0], opts.navlinks, index_file, opts.epub_name)
 
 
 if __name__ == '__main__':

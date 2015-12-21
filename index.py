@@ -19,7 +19,8 @@ class Index(object):
 
     def __exit__(self, type, value, traceback):
         if self.entries is not None:
-            html = lxml.etree.Element('html')
+            html = lxml.etree.Element('html',
+                                      xmlns="http://www.w3.org/1999/xhtml")
             head = lxml.etree.SubElement(html, 'head')
             meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
             body = lxml.etree.SubElement(html, 'body')
@@ -27,7 +28,10 @@ class Index(object):
             h1.text = 'TOC'
             body.append(self.entries)
 
-            lxml.etree.ElementTree(html).write(self.filename, encoding='utf8', pretty_print=True)
+            lxml.etree.ElementTree(html).write(self.filename,
+                                               encoding='utf8',
+                                               doctype='<!DOCTYPE html>',
+                                               pretty_print=True)
 
     def _load_entries(self):
         with open(self.filename, 'r') as f:
