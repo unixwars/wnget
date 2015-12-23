@@ -7,7 +7,8 @@ import zipfile
 CONTAINER_XML = '''<container version="1.0"
            xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
-    <rootfile full-path="OEBPS/Content.opf" media-type="application/oebps-package+xml"/>
+    <rootfile full-path="OEBPS/Content.opf"
+        media-type="application/oebps-package+xml"/>
   </rootfiles>
 </container>'''
 
@@ -22,7 +23,8 @@ INDEX_TPL = '''<package version="2.0"
   </spine>
 </package>'''
 
-MANIFEST_TPL = '<item id="file_%(num)s" href="%(filename)s" media-type="application/xhtml+xml"/>'
+MANIFEST_TPL = '''<item id="file_%(num)s" href="%(filename)s"
+    media-type="application/xhtml+xml"/>'''
 SPINE_TPL = '<itemref idref="file_%(num)s" />'
 
 
