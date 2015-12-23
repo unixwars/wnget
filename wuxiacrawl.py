@@ -40,6 +40,13 @@ def main():
         help="Don't make index file.")
 
     p.add_option(
+        '--firsttitle', '-f',
+        action="store_true",
+        default=False,
+        dest="firsttitle",
+        help="Keep first title match instead of trying to be smart about it")
+
+    p.add_option(
         '--next', '-n',
         default=crawl.NEXT_STR,
         dest="next_str",
@@ -76,9 +83,10 @@ def main():
 
     index_file = INDEX_FILE if not opts.skipindex else None
     crawler = crawl.Crawler(opts.next_str, opts. prev_str,
-                    opts.title_class, opts.content_class)
+                            opts.title_class, opts.content_class)
 
-    crawler.crawl(args[0], opts.navlinks, index_file, opts.epub_name)
+    crawler.crawl(args[0], opts.navlinks, index_file,
+                  opts.epub_name, not opts.firsttitle)
 
 
 if __name__ == '__main__':

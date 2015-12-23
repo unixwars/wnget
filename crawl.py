@@ -11,6 +11,8 @@ PREV_STR = 'Previous Chapter'
 T_CLASS = 'entry-title'
 C_CLASS = 'entry-content'
 DEFAULT_CONNECTION_TIMEOUT = 5  # seconds
+NTH_BLOCK = 4  # title is, at most, in the Nth block within content
+
 
 class Crawler(object):
     """
@@ -24,29 +26,46 @@ class Crawler(object):
         self.title_class = title_class
         self.content_class = content_class
 
-    def crawl(self, url, with_navlinks=False, index_file=None, epub_file=None):
+    def crawl(self, url, with_navlinks=False, index_file=None, epub_file=None,
+              smart_titles=True):
         "Crawl given url, rewriting/deleting navigation links, and " + \
             "overwriting index file if provided"
 
         with index.Index(index_file) as indexer:
-            html_files = self._crawl(url, with_navlinks, indexer)
+            html_files = self._crawl(url, with_navlinks, indexer, smart_titles)
 
         if epub_file is not None:
             html_files = filter(None, [index_file] + html_files)
             epub.create_epub(epub_file, html_files)
 
-    def _get_title(self, tree, default_title=''):
+    def _get_title(self, tree, default_title='', heuristic=True):
         # Wuxiaworld titles are inconsistent among creations. The ones
         # inside the content, if present, tend to look better than the ones
-        # in H1 elements
+        # in H1 elements.
         titles = tree.xpath('//*[@class="%s"]' % self.title_class)
-        strongs = tree.xpath('//strong')
+        strongs = tree.xpath('//p/strong')
+        bolds = tree.xpath('//p/b/span') or tree.xpath('//p/b')
+
         if titles:
             default_title = titles[0].text_content()
-        if strongs:
-            default_title = strongs[0].text_content()
+
+        if heuristic:
+            if strongs and self._get_metaindex(strongs[0], tree) < NTH_BLOCK:
+                default_title = strongs[0].text_content()
+            if bolds and self._get_metaindex(bolds[0], tree) < NTH_BLOCK:
+                default_title = bolds[0].text_content()
 
         return default_title.strip()
+
+    def _get_metaindex(self, node, tree):
+        "Index of top level ancestor within tree, showing high level structure"
+        child, parent = node, tree
+        for ancestor in node.iterancestors():
+            child, parent = parent, ancestor
+            if ancestor == tree:  # top level reached
+                break
+
+        return parent.index(child)
 
     def _url_to_filename(self, url):
         url = url or ''
@@ -71,7 +90,7 @@ class Crawler(object):
 
         return tree, next_url
 
-    def _crawl(self, next_url, with_navlinks, indexer):
+    def _crawl(self, next_url, with_navlinks, indexer, smart_titles):
         assert isinstance(indexer, index.Index) or indexer is None
 
         eventlet.monkey_patch()  # eventlet magic...
@@ -91,7 +110,7 @@ class Crawler(object):
                 continue
 
             tree = lxml.html.fromstring(page.content.decode('utf8'))
-            title = self._get_title(tree, fname)
+            title = self._get_title(tree, fname, smart_titles)
             content = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
             content, next_url = self._process_nav(content, with_navlinks)
 
@@ -102,17 +121,19 @@ class Crawler(object):
             if os.path.isfile(fname):
                 continue
 
-            self._write_html(content, fname)
+            self._write_html(content, fname, title)
 
         return html_files
 
-    def _write_html(self, content, fname):
+    def _write_html(self, content, fname, chapter_title):
         html = lxml.etree.Element('html', xmlns="http://www.w3.org/1999/xhtml")
         head = lxml.etree.SubElement(html, 'head')
+        chap = lxml.etree.SubElement(head, 'title')
+        chap.text = chapter_title
         meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
         body = lxml.etree.SubElement(html, 'body')
         body.append(content)
         lxml.etree.ElementTree(html).write(fname,
-                                           encoding='utf8',
-                                           doctype='<!DOCTYPE html>',
+                                           encoding='utf-8',
+                                           method='html',
                                            pretty_print=True)

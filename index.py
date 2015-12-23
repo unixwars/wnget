@@ -2,6 +2,7 @@ import os
 import lxml.etree
 import lxml.html
 
+
 class Index(object):
     """
     Index objects create index files suitable for Epub TOC creation
@@ -22,15 +23,17 @@ class Index(object):
             html = lxml.etree.Element('html',
                                       xmlns="http://www.w3.org/1999/xhtml")
             head = lxml.etree.SubElement(html, 'head')
+            title = lxml.etree.SubElement(head, 'title')
+            title.text = 'Index'
             meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
             body = lxml.etree.SubElement(html, 'body')
             h1 = lxml.etree.SubElement(body, 'h1')
-            h1.text = 'TOC'
+            h1.text = 'Index'
             body.append(self.entries)
 
             lxml.etree.ElementTree(html).write(self.filename,
-                                               encoding='utf8',
-                                               doctype='<!DOCTYPE html>',
+                                               encoding='utf-8',
+                                               method='html',
                                                pretty_print=True)
 
     def _load_entries(self):
