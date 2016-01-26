@@ -11,7 +11,7 @@ PREV_STR = 'Previous Chapter'
 T_CLASS = 'entry-title'
 C_CLASS = 'entry-content'
 DEFAULT_CONNECTION_TIMEOUT = 5  # seconds
-NTH_BLOCK = 4  # title is, at most, in the Nth block within content
+TITLE_DELTA = 10  # Chapter titles should be within 10 lines of each other
 
 
 class Crawler(object):
@@ -48,26 +48,18 @@ class Crawler(object):
         candidates = []
 
         if titles:
-            candidates.append(titles[0].text_content())
-        if strongs and self._get_metaindex(strongs[0], tree) < NTH_BLOCK:
-            candidates.append(strongs[0].text_content())
-        if bolds and self._get_metaindex(bolds[0], tree) < NTH_BLOCK:
-            candidates.append(bolds[0].text_content())
+            candidates.append(titles[0])
+        if strongs:
+            candidates.append(strongs[0])
+        if bolds:
+            candidates.append(bolds[0])
 
         if heuristic:
-            candidates.sort(key=lambda x: -len(x))
+            # cleanup candidates, and leave "best" first
+            ref_sl = candidates[0].sourceline + TITLE_DELTA
+            candidates = [c for c in candidates[::-1] if c.sourceline < ref_sl]
 
-        return candidates[0].strip()
-
-    def _get_metaindex(self, node, tree):
-        "Index of top level ancestor within tree, showing high level structure"
-        child, parent = node, tree
-        for ancestor in node.iterancestors():
-            child, parent = parent, ancestor
-            if ancestor == tree:  # top level reached
-                break
-
-        return parent.index(child)
+        return candidates[0].text_content().strip()
 
     def _url_to_filename(self, url):
         url = url or ''
