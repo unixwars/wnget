@@ -76,6 +76,13 @@ def main():
         dest="epub_name",
         help="Create an Epub with this name.")
 
+    p.add_option(
+        '--limit', '-l',
+        default=0,
+        type="int",
+        dest="limit",
+        help="Crawl at most N pages.")
+
     opts, args = p.parse_args()
 
     if len(args) != 1:
@@ -86,7 +93,7 @@ def main():
                             opts.title_class, opts.content_class)
 
     crawler.crawl(args[0], opts.navlinks, index_file,
-                  opts.epub_name, not opts.firsttitle)
+                  opts.epub_name, not opts.firsttitle, opts.limit)
 
 
 if __name__ == '__main__':

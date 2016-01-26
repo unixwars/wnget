@@ -27,12 +27,12 @@ class Crawler(object):
         self.content_class = content_class
 
     def crawl(self, url, with_navlinks=False, index_file=None, epub_file=None,
-              smart_titles=True):
+              smart_titles=True, limit=0):
         "Crawl given url, rewriting/deleting navigation links, and " + \
             "overwriting index file if provided"
 
         with index.Index(index_file) as indexer:
-            html_files = self._crawl(url, with_navlinks, indexer, smart_titles)
+            html_files = self._crawl(url, with_navlinks, indexer, smart_titles, limit)
 
         if epub_file is not None:
             html_files = filter(None, [index_file] + html_files)
@@ -45,17 +45,19 @@ class Crawler(object):
         titles = tree.xpath('//*[@class="%s"]' % self.title_class)
         strongs = tree.xpath('//p/strong')
         bolds = tree.xpath('//p/b/span') or tree.xpath('//p/b')
+        candidates = []
 
         if titles:
-            default_title = titles[0].text_content()
+            candidates.append(titles[0].text_content())
+        if strongs and self._get_metaindex(strongs[0], tree) < NTH_BLOCK:
+            candidates.append(strongs[0].text_content())
+        if bolds and self._get_metaindex(bolds[0], tree) < NTH_BLOCK:
+            candidates.append(bolds[0].text_content())
 
         if heuristic:
-            if strongs and self._get_metaindex(strongs[0], tree) < NTH_BLOCK:
-                default_title = strongs[0].text_content()
-            if bolds and self._get_metaindex(bolds[0], tree) < NTH_BLOCK:
-                default_title = bolds[0].text_content()
+            candidates.sort(key=lambda x: -len(x))
 
-        return default_title.strip()
+        return candidates[0].strip()
 
     def _get_metaindex(self, node, tree):
         "Index of top level ancestor within tree, showing high level structure"
@@ -90,12 +92,13 @@ class Crawler(object):
 
         return tree, next_url
 
-    def _crawl(self, next_url, with_navlinks, indexer, smart_titles):
+    def _crawl(self, next_url, with_navlinks, indexer, smart_titles, limit):
         assert isinstance(indexer, index.Index) or indexer is None
 
         eventlet.monkey_patch()  # eventlet magic...
 
         html_files = []
+        count = 0
         while next_url:
             fname = self._url_to_filename(next_url)
             print 'URL: %s (%s%s)' % (next_url,  fname,
@@ -105,6 +108,7 @@ class Crawler(object):
                 with eventlet.Timeout(DEFAULT_CONNECTION_TIMEOUT):
                     page = requests.get(next_url)
                     next_url = None
+                    count += 1
             except eventlet.Timeout:
                 print 'Timed out!'
                 continue
@@ -113,6 +117,9 @@ class Crawler(object):
             title = self._get_title(tree, fname, smart_titles)
             content = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
             content, next_url = self._process_nav(content, with_navlinks)
+
+            if limit and count == limit:
+                next_url = None
 
             if indexer:
                 indexer.update(fname, title)
