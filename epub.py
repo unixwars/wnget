@@ -1,60 +1,76 @@
-import os.path
-import zipfile
+import os
+import uuid
+import subprocess
+import tempfile
 
-# Mostly taken from:
-# http://www.manuel-strehl.de/dev/simple_epub_ebooks_with_python.en.html
-
-CONTAINER_XML = '''<container version="1.0"
-           xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/Content.opf"
-        media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>'''
-
-INDEX_TPL = '''<package version="2.0"
-  xmlns="http://www.idpf.org/2007/opf">
-  <metadata/>
-  <manifest>
-    %(manifest)s
-  </manifest>
-  <spine toc="ncx">
-    %(spine)s
-  </spine>
-</package>'''
-
-MANIFEST_TPL = '''<item id="file_%(num)s" href="%(filename)s"
-    media-type="application/xhtml+xml"/>'''
-SPINE_TPL = '<itemref idref="file_%(num)s" />'
+from ebooklib import epub
+import chapter
 
 
-def create_epub(filename, html_files):
-    epub = zipfile.ZipFile("%s.epub" % filename, 'w')
+SRC_PATH = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_PATH = os.path.join(SRC_PATH, "templates")
+NAV_CSS = os.path.join(TEMPLATE_PATH, 'nav.css')
 
-    # The first file must be named "mimetype"
-    epub.writestr("mimetype", "application/epub+zip")
 
-    # We need an index file, that lists all other HTML files
-    # This index file itself is referenced in the META_INF/container.xml
-    # file
-    epub.writestr("META-INF/container.xml", CONTAINER_XML)
+def create_epub(ebook_title, chapter_list, ebook_filename=None,
+                language='en', author=None, cover_image=None):
+    assert all(map(lambda x: isinstance(x, chapter.Chapter), chapter_list))
+    book = epub.EpubBook()
 
-    # Write each HTML file to the ebook, collect information for the index
-    manifest = ""
-    spine = ""
+    # add metadata
+    book.set_identifier(uuid.uuid1().urn)
+    book.set_title(ebook_title)
+    book.set_language(language)
+    if author:
+        book.add_author(author)
+    if cover_image:
+        cover_fname = os.path.basename(cover_image)
+        book.set_cover(cover_fname, open(cover_image, 'rb').read())
 
-    for i, html in enumerate(html_files):
-        basename = os.path.basename(html)
-        manifest += MANIFEST_TPL % {
-            'num': i+1,
-            'filename': basename
-        }
-        spine += '<itemref idref="file_%s" />' % {'num': i+1}
-        epub.write(html, 'OEBPS/'+basename)
+    # chapters
+    epub_chapters = []
+    for c in chapter_list:
+        chapt = epub.EpubHtml(title=c.title, file_name=c.xhtml_filename,
+                              content=c.html, lang=language)
+        book.add_item(chapt)
+        epub_chapters.append(chapt)
 
-    # The index file is another XML file, living per convention
-    # in OEBPS/Content.xml
-    epub.writestr('OEBPS/Content.opf', INDEX_TPL % {
-        'manifest': manifest,
-        'spine': spine,
-    })
+    # navigation & css style
+    book.toc = epub_chapters
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    style = open(NAV_CSS).read()
+    nav_css = epub.EpubItem(
+        uid="style_nav", file_name="style/nav.css",
+        media_type="text/css", content=style)
+    book.add_item(nav_css)
+    book.spine = ['nav'] + epub_chapters
+
+    if ebook_filename is None:
+        ebook_filename = ebook_title.replace(' ', '-')
+        ebook_filename += '' if ebook_filename.endswith('.epub') else '.epub'
+    epub.write_epub(ebook_filename, book, {})
+
+
+def test_create_epub():
+    "Test only runs/works/fails if epubcheck present"
+
+    try:
+        f, bookfile = tempfile.mkstemp(suffix='.epub', dir='/tmp')
+        test_chapter = chapter.Chapter(
+            'title',
+            '<html><head></head><body>content</body></html>',
+            '/test/test-chapter')
+        create_epub('test', [test_chapter], bookfile)
+        rc = subprocess.call(["epubcheck", bookfile])
+        os.unlink(bookfile)
+        assert rc == 0  # No errors
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            return  # handle file not found error.
+        else:
+            raise  # Something else
+
+
+if __name__ == '__main__':
+    test_create_epub()

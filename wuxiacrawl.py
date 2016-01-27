@@ -73,8 +73,8 @@ def main():
     p.add_option(
         '--epub', '-e',
         default=None,
-        dest="epub_name",
-        help="Create an Epub with this name.")
+        dest="epub_title",
+        help="Create an Epub with this book title.")
 
     p.add_option(
         '--limit', '-l',
@@ -93,7 +93,7 @@ def main():
                             opts.title_class, opts.content_class)
 
     crawler.crawl(args[0], opts.navlinks, index_file,
-                  opts.epub_name, not opts.firsttitle, opts.limit)
+                  opts.epub_title, not opts.firsttitle, opts.limit)
 
 
 if __name__ == '__main__':

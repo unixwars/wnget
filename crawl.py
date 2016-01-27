@@ -5,6 +5,7 @@ import os
 import eventlet
 import index
 import epub
+import chapter
 
 NEXT_STR = 'Next Chapter'
 PREV_STR = 'Previous Chapter'
@@ -26,17 +27,16 @@ class Crawler(object):
         self.title_class = title_class
         self.content_class = content_class
 
-    def crawl(self, url, with_navlinks=False, index_file=None, epub_file=None,
+    def crawl(self, url, with_navlinks=False, index_file=None, epub_title=None,
               smart_titles=True, limit=0):
         "Crawl given url, rewriting/deleting navigation links, and " + \
             "overwriting index file if provided"
 
         with index.Index(index_file) as indexer:
-            html_files = self._crawl(url, with_navlinks, indexer, smart_titles, limit)
+            lst = self._crawl(url, with_navlinks, indexer, smart_titles, limit)
 
-        if epub_file is not None:
-            html_files = filter(None, [index_file] + html_files)
-            epub.create_epub(epub_file, html_files)
+        if epub_title is not None:
+            epub.create_epub(epub_title, lst)
 
     def _get_title(self, tree, default_title='', heuristic=True):
         # Wuxiaworld titles are inconsistent among creations. The ones
@@ -78,7 +78,7 @@ class Crawler(object):
 
         for node in next_nodes + prev_nodes:
             if with_navlinks and node.tag == 'a':
-                node.set('href', url_to_filename(node.get('href')))
+                node.set('href', self.url_to_filename(node.get('href')))
             elif not with_navlinks:
                 node.getparent().remove(node)
 
@@ -89,16 +89,18 @@ class Crawler(object):
 
         eventlet.monkey_patch()  # eventlet magic...
 
-        html_files = []
+        chapters = []
         count = 0
+        last_url = None
         while next_url:
             fname = self._url_to_filename(next_url)
-            print 'URL: %s (%s%s)' % (next_url,  fname,
+            print 'URL: %s (%s%s)' % (next_url, fname,
                                       ' *' if os.path.isfile(fname) else '')
 
             try:
                 with eventlet.Timeout(DEFAULT_CONNECTION_TIMEOUT):
                     page = requests.get(next_url)
+                    last_url = next_url
                     next_url = None
                     count += 1
             except eventlet.Timeout:
@@ -107,8 +109,8 @@ class Crawler(object):
 
             tree = lxml.html.fromstring(page.content.decode('utf8'))
             title = self._get_title(tree, fname, smart_titles)
-            content = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
-            content, next_url = self._process_nav(content, with_navlinks)
+            c_tree = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
+            c_tree, next_url = self._process_nav(c_tree, with_navlinks)
 
             if limit and count == limit:
                 next_url = None
@@ -116,23 +118,11 @@ class Crawler(object):
             if indexer:
                 indexer.update(fname, title)
 
-            html_files.append(fname)
+            c = chapter.Chapter(title, c_tree, last_url)
+            chapters.append(c)
             if os.path.isfile(fname):
                 continue
 
-            self._write_html(content, fname, title)
+            c.write()
 
-        return html_files
-
-    def _write_html(self, content, fname, chapter_title):
-        html = lxml.etree.Element('html', xmlns="http://www.w3.org/1999/xhtml")
-        head = lxml.etree.SubElement(html, 'head')
-        chap = lxml.etree.SubElement(head, 'title')
-        chap.text = chapter_title
-        meta = lxml.etree.SubElement(head, 'meta', charset='UTF-8')
-        body = lxml.etree.SubElement(html, 'body')
-        body.append(content)
-        lxml.etree.ElementTree(html).write(fname,
-                                           encoding='utf-8',
-                                           method='html',
-                                           pretty_print=True)
+        return chapters
