@@ -58,12 +58,11 @@ def test_create_epub():
 
     try:
         f, bookfile = tempfile.mkstemp(suffix='.epub', dir='/tmp')
-        ct = lxml.html.fromstring('<html><head></head><body>txt</body></html>')
         test_chapter = Chapter(
-            filename='',
+            filename='chapter.html',
             title='title',
-            tree=ct,
-            url='/test/test-chapter')
+            tree=lxml.html.fromstring('chapter'),
+            url='http://example.com/novel-chapter-1')
         create_epub('test', [test_chapter], bookfile)
         rc = subprocess.call(["epubcheck", bookfile])
         os.unlink(bookfile)
