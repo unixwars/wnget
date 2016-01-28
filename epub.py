@@ -2,9 +2,10 @@ import os
 import uuid
 import subprocess
 import tempfile
+import lxml.html
 
 from ebooklib import epub
-import chapter
+from container import Chapter
 
 
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +15,7 @@ NAV_CSS = os.path.join(TEMPLATE_PATH, 'nav.css')
 
 def create_epub(ebook_title, chapter_list, ebook_filename=None,
                 language='en', author=None, cover_image=None):
-    assert all(map(lambda x: isinstance(x, chapter.Chapter), chapter_list))
+    assert all(map(lambda x: isinstance(x, Chapter), chapter_list))
     book = epub.EpubBook()
 
     # add metadata
@@ -57,10 +58,12 @@ def test_create_epub():
 
     try:
         f, bookfile = tempfile.mkstemp(suffix='.epub', dir='/tmp')
-        test_chapter = chapter.Chapter(
-            'title',
-            '<html><head></head><body>content</body></html>',
-            '/test/test-chapter')
+        ct = lxml.html.fromstring('<html><head></head><body>txt</body></html>')
+        test_chapter = Chapter(
+            filename='',
+            title='title',
+            tree=ct,
+            url='/test/test-chapter')
         create_epub('test', [test_chapter], bookfile)
         rc = subprocess.call(["epubcheck", bookfile])
         os.unlink(bookfile)
