@@ -46,7 +46,7 @@ class Chapter(_Container):
     @classmethod
     def from_file(cls, fname, title):
         with open(fname) as f:
-            tree = lxml.html.fromstring(f.read())
+            tree = lxml.html.fromstring(f.read().decode('utf8'))
             body = tree.xpath('//body')[0]
             div = list(body.iterchildren())[0]
 

@@ -29,9 +29,9 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
     # add metadata
     book.set_identifier(uuid.uuid1().urn)
     book.set_title(ebook_title.decode('utf8'))
-    book.set_language(language)
+    book.set_language(language.decode('utf8'))
     if author:
-        book.add_author(author)
+        book.add_author(author.decode('utf8'))
 
     if cover_image is None:
         cover_image = find_cover()
