@@ -4,7 +4,6 @@ import lxml.html
 import requests
 import eventlet
 
-import epub
 import container
 
 NEXT_STR = 'Next Chapter'
@@ -27,19 +26,12 @@ class Crawler(object):
         self.title_class = title_class
         self.content_class = content_class
 
-    def crawl(self, url, with_navlinks=False, index_file=None, epub_title=None,
+    def crawl(self, url, last_url=None, with_navlinks=False,
               smart_titles=True, limit=0):
-        "Crawl given url, rewriting/deleting navigation links, and " + \
-            "overwriting index file if provided"
+        "Crawl given url, rewriting/deleting navigation links"
 
-        chapter_lst = self._crawl(url, with_navlinks, smart_titles, limit)
-
-        if index_file:
-            index = container.Index(chapters=chapter_lst, filename=index_file)
-            index.write()
-
-        if epub_title:
-            epub.create_epub(epub_title, chapter_lst)
+        chapts = self._crawl(url, last_url, with_navlinks, smart_titles, limit)
+        return chapts
 
     def _get_title(self, tree, default_title='', heuristic=True):
         # Wuxiaworld titles are inconsistent among creations. The ones
@@ -87,13 +79,13 @@ class Crawler(object):
 
         return tree, next_url
 
-    def _crawl(self, next_url, with_navlinks, smart_titles, limit):
+    def _crawl(self, next_url, last_url, with_navlinks, smart_titles, limit):
         eventlet.monkey_patch()  # eventlet magic...
-        logger = logging.getLogger()
+        logger = logging.getLogger('__wnget__' + '.' + __name__)
 
         chapters = []
         count = 0
-        last_url = None
+        prev_url = None
         while next_url:
             fname = self._url_to_filename(next_url)
             logger.info('URL: %s (%s%s)', next_url, fname,
@@ -102,7 +94,7 @@ class Crawler(object):
             try:
                 with eventlet.Timeout(DEFAULT_CONNECTION_TIMEOUT):
                     page = requests.get(next_url)
-                    last_url = next_url
+                    prev_url = next_url
                     next_url = None
                     count += 1
             except eventlet.Timeout:
@@ -116,8 +108,11 @@ class Crawler(object):
             if limit and count == limit:
                 next_url = None
 
-            c = container.Chapter(filename=fname, title=title,
-                                  tree=c_tree, url=last_url)
+            if last_url == prev_url:
+                next_url = None
+
+            c = container.Chapter(tree=c_tree, title=title, filename=fname,
+                                  url=prev_url)
             chapters.append(c)
             if not os.path.isfile(fname):
                 c.write()

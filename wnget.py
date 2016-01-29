@@ -3,8 +3,11 @@
 
 import logging
 import optparse
+import os
 
 import crawl
+import container
+import epub
 
 """
 Crawl WuxiaWorld novels and write chapters to current directory.
@@ -19,13 +22,15 @@ As of 2015-12-20, completed translations include:
 """
 
 __version__ = '0.1'
-INDEX_FILE = 'index.html'
+
+COVER_PNG = 'cover.png'
+COVER_JPG = 'cover.jpg'
 
 
 def main():
     p = optparse.OptionParser(
-        usage="Usage: %prog [options] url",
-        version="wuxiacrawl version %s" % __version__)
+        usage="Usage: %prog [options] first_url [last_url]",
+        version="wnget version %s" % __version__)
 
     p.add_option(
         '--keeplinks', '-k',
@@ -33,13 +38,6 @@ def main():
         default=False,
         dest="navlinks",
         help="Rewrite and keep navigation links in HTML content.")
-
-    p.add_option(
-        '--skipindex', '-s',
-        action="store_true",
-        default=False,
-        dest="skipindex",
-        help="Don't make index file.")
 
     p.add_option(
         '--firsttitle', '-f',
@@ -76,7 +74,7 @@ def main():
         '--epub', '-e',
         default=None,
         dest="epub_title",
-        help="Create an Epub with this book title.")
+        help="Create Epub with this title. Will use cover.jpg/png if found.")
 
     p.add_option(
         '--limit', '-l',
@@ -87,30 +85,51 @@ def main():
 
     opts, args = p.parse_args()
 
-    if len(args) != 1:
-        p.error("Incorrect number of arguments. Provide ONE url!")
+    first_url, last_url = None, None
+    if len(args) == 2:
+        first_url, last_url = args[0], args[1]
+    elif len(args) == 1:
+        first_url = args[0]
+    else:
+        p.error("Incorrect number of arguments. Provide 1 or 2 URLs!")
 
-    index_file = INDEX_FILE if not opts.skipindex else None
-    crawler = crawl.Crawler(opts.next_str, opts. prev_str,
+    setup_logger()
+
+    crawler = crawl.Crawler(opts.next_str, opts.prev_str,
                             opts.title_class, opts.content_class)
 
-    crawler.crawl(args[0], opts.navlinks, index_file,
-                  opts.epub_title, not opts.firsttitle, opts.limit)
+    try:
+        chapts = crawler.crawl(first_url, last_url, opts.navlinks,
+                               not opts.firsttitle, opts.limit)
+    except KeyboardInterrupt:
+        raise
+    finally:  # Finish generating index/book for retrieved content
+        container.Index(chapts).write()
+        if opts.epub_title:
+            cover = find_cover()
+            title = opts.epub_title.decode('utf8')
+            epub.create_epub(title, chapts, cover_image=cover)
 
 
-def configure_logger():
-    logger = logging.getLogger()
+def find_cover():
+    if os.path.isfile(COVER_PNG):
+        return COVER_PNG
+    if os.path.isfile(COVER_JPG):
+        return COVER_JPG
+    return None
+
+
+def setup_logger():
+    logger = logging.getLogger('__wnget__')
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(message)s')
+    logger.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
 
 if __name__ == '__main__':
     try:
-        configure_logger()
         main()
     except KeyboardInterrupt:
         print 'Exiting...'

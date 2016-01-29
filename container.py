@@ -4,9 +4,9 @@ import lxml.html
 
 class _Container(object):
     """Generic xhtml container"""
-    def __init__(self, filename, title, tree):
-        self.title = title
+    def __init__(self, tree, title, filename):
         self.tree = tree
+        self.title = title
         self.filename = filename
         self._pre = None
 
@@ -35,8 +35,8 @@ class _Container(object):
 
 class Chapter(_Container):
     """Chapters are what's kept after scraping web pages"""
-    def __init__(self, filename, title, tree, url):
-        _Container.__init__(self, filename, title, tree)
+    def __init__(self, tree, title, filename, url):
+        _Container.__init__(self, tree, title, filename)
         self.url = url
 
     @property
@@ -46,12 +46,12 @@ class Chapter(_Container):
 
 class Index(_Container):
     """Generate index.html out of a list of chapters"""
-    def __init__(self, chapters, filename='index.html', title='Index'):
+    def __init__(self, chapters, title='Index', filename='index.html'):
         self._load(filename)
         self._extend(chapters)
         self._dedupe()
 
-        _Container.__init__(self, filename, title, self.tree)
+        _Container.__init__(self, self.tree, title, filename)
         self._pre = lxml.etree.Element('h1')
         self._pre.text = self.title
 
