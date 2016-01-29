@@ -94,15 +94,12 @@ def main():
     crawler = crawl.Crawler(opts.next_str, opts.prev_str,
                             opts.title_class, opts.content_class)
 
-    try:
-        chapts = crawler.crawl(first_url, last_url, opts.navlinks,
-                               not opts.firsttitle, opts.limit)
-    except KeyboardInterrupt:
-        raise
-    finally:  # Finish generating index/book for retrieved content
-        container.Index(chapts).write()
-        if opts.epub_title:
-            epub.create_epub(opts.epub_title, chapts)
+    chapts = crawler.crawl(first_url, last_url, opts.navlinks,
+                           not opts.firsttitle, opts.limit)
+
+    container.Index(chapts).write()
+    if opts.epub_title:
+        epub.create_epub(opts.epub_title, chapts)
 
 
 def setup_logger():

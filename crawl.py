@@ -58,8 +58,8 @@ class Crawler(object):
 
     def _url_to_filename(self, url):
         url = url or ''
-        url = url.strip()
-        end = filter(None, url.split('/'))[-1]
+        url = url.strip().strip('/')
+        end = url.split('/')[-1]
         return '%s.html' % (end) if end else '#'
 
     def _process_nav(self, tree, with_navlinks):
@@ -79,12 +79,14 @@ class Crawler(object):
 
         return tree, next_url
 
+    def _is_same_url(self, a, b):
+        return a and b and a.strip().strip('/') == b.strip().strip('/')
+
     def _crawl(self, next_url, last_url, with_navlinks, smart_titles, limit):
         eventlet.monkey_patch()  # eventlet magic...
         logger = logging.getLogger('__wnget__.%s' % __name__)
 
         chapters = []
-        count = 0
         prev_url = None
         while next_url:
             fname = self._url_to_filename(next_url)
@@ -96,19 +98,25 @@ class Crawler(object):
                     page = requests.get(next_url)
                     prev_url = next_url
                     next_url = None
-                    count += 1
+                    limit -= 1
             except eventlet.Timeout:
-                logger.warning('Timed out! (%s)', next_url)
+                logger.error('Timed out! (%s)', next_url)
+                break
+            except KeyboardInterrupt:
+                logger.info('Interrupted by user!')
+                break
 
             tree = lxml.html.fromstring(page.content.decode('utf8'))
-            title = self._get_title(tree, fname, smart_titles)
-            c_tree = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
-            c_tree, next_url = self._process_nav(c_tree, with_navlinks)
 
-            if limit and count == limit:
-                next_url = None
+            try:
+                title = self._get_title(tree, fname, smart_titles)
+                c_tree = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
+                c_tree, next_url = self._process_nav(c_tree, with_navlinks)
+            except IndexError:
+                logger.error("Crawling stopped. Last page was unexpected!")
+                break
 
-            if last_url == prev_url:
+            if limit == 0 or self._is_same_url(last_url, prev_url):
                 next_url = None
 
             c = container.Chapter(tree=c_tree, title=title, filename=fname,
