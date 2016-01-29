@@ -28,7 +28,7 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
 
     # add metadata
     book.set_identifier(uuid.uuid1().urn)
-    book.set_title(ebook_title)
+    book.set_title(ebook_title.decode('utf8'))
     book.set_language(language)
     if author:
         book.add_author(author)
@@ -109,7 +109,7 @@ def main():
         usage="Usage: %prog [options] <index.html> <book title>")
 
     p.add_option(
-        '--filename', '-t',
+        '--filename', '-f',
         default=None,
         dest="ebook_filename",
         help="Specify fileanme. Works out something from title by default")

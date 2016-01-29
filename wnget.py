@@ -102,10 +102,7 @@ def main():
     finally:  # Finish generating index/book for retrieved content
         container.Index(chapts).write()
         if opts.epub_title:
-            title = opts.epub_title.decode('utf8')
-            epub.create_epub(title, chapts)
-
-
+            epub.create_epub(opts.epub_title, chapts)
 
 
 def setup_logger():

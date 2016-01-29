@@ -81,7 +81,7 @@ class Crawler(object):
 
     def _crawl(self, next_url, last_url, with_navlinks, smart_titles, limit):
         eventlet.monkey_patch()  # eventlet magic...
-        logger = logging.getLogger('__wnget__' + '.' + __name__)
+        logger = logging.getLogger('__wnget__.%s' % __name__)
 
         chapters = []
         count = 0
