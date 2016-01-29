@@ -43,10 +43,19 @@ class Chapter(_Container):
     def xhtml_filename(self):
         return self.filename.replace('.html', '.xhtml')
 
+    @classmethod
+    def from_file(cls, fname, title):
+        with open(fname) as f:
+            tree = lxml.html.fromstring(f.read())
+            body = tree.xpath('//body')[0]
+            div = list(body.iterchildren())[0]
+
+        return cls(tree=div, title=title, filename=fname, url=fname)
+
 
 class Index(_Container):
     """Generate index.html out of a list of chapters"""
-    def __init__(self, chapters, title='Index', filename='index.html'):
+    def __init__(self, chapters=[], title='Index', filename='index.html'):
         self._load(filename)
         self._extend(chapters)
         self._dedupe()
@@ -81,3 +90,7 @@ class Index(_Container):
 
         for dupe in dupes:
             self.tree.remove(dupe)
+
+    @property
+    def links(self):
+        return self.tree.xpath('//a')

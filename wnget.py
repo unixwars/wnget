@@ -3,7 +3,6 @@
 
 import logging
 import optparse
-import os
 
 import crawl
 import container
@@ -22,9 +21,6 @@ As of 2015-12-20, completed translations include:
 """
 
 __version__ = '0.1'
-
-COVER_PNG = 'cover.png'
-COVER_JPG = 'cover.jpg'
 
 
 def main():
@@ -106,17 +102,10 @@ def main():
     finally:  # Finish generating index/book for retrieved content
         container.Index(chapts).write()
         if opts.epub_title:
-            cover = find_cover()
             title = opts.epub_title.decode('utf8')
-            epub.create_epub(title, chapts, cover_image=cover)
+            epub.create_epub(title, chapts)
 
 
-def find_cover():
-    if os.path.isfile(COVER_PNG):
-        return COVER_PNG
-    if os.path.isfile(COVER_JPG):
-        return COVER_JPG
-    return None
 
 
 def setup_logger():
