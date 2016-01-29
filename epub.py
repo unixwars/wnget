@@ -43,8 +43,10 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
     # chapters
     epub_chapters = []
     for c in chapter_list:
-        chapt = epub.EpubHtml(title=c.title, file_name=c.xhtml_filename,
-                              content=c.html, lang=language)
+        chapt = epub.EpubHtml(title=c.title,
+                              file_name=c.xhtml_filename,
+                              content=c.html, lang=language,
+                              media_type="application/xhtml+xml")
         book.add_item(chapt)
         epub_chapters.append(chapt)
 
