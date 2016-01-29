@@ -65,18 +65,22 @@ class Index(_Container):
         self._pre.text = self.title
 
     def _load(self, filename):
-        if not os.path.isfile(filename):
-            self.tree = lxml.etree.Element('ul', style="list-style-type:none;padding:0;")
-        else:
+        self.tree = lxml.etree.Element('ul', style="list-style-type:none;padding:0;")
+        if os.path.isfile(filename):
             with open(filename, 'r') as f:
-                self.tree = lxml.html.fromstring(f.read().decode('utf8'))
-                self.tree = self.tree.xpath('//ul')[0]
+                tree = lxml.html.fromstring(f.read().decode('utf8'))
+                links = tree.xpath('//a')
+                for link in links:
+                    self.append(link.get('href'), link.text)
 
     def _extend(self, chapters):
         for c in chapters:
-            li = lxml.etree.SubElement(self.tree, 'li')
-            link = lxml.etree.SubElement(li, 'a', href=c.filename)
-            link.text = c.title
+            self.append(c.filename, c.title)
+
+    def append(self, filename, title):
+        li = lxml.etree.SubElement(self.tree, 'li')
+        link = lxml.etree.SubElement(li, 'a', href=filename)
+        link.text = title
 
     def _dedupe(self):
         uniques = set()
