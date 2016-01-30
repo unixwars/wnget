@@ -69,7 +69,6 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
 
 def test_create_epub():
     "Test only runs/works/fails if epubcheck present"
-
     try:
         f, bookfile = tempfile.mkstemp(suffix='.epub', dir='/tmp')
         test_chapter = Chapter(
@@ -99,8 +98,9 @@ def find_cover():
 def load_chapters(index_file):
     chapters = []
     index = Index(filename=index_file)
+    path = os.path.dirname(os.path.abspath(index_file))
     for link in index.links:
-        fname = link.get('href')
+        fname = os.path.join(path, link.get('href'))
         c = Chapter.from_file(fname, link.text)
         chapters.append(c)
     return chapters

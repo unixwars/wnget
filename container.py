@@ -7,7 +7,7 @@ class _Container(object):
     def __init__(self, tree, title, filename):
         self.tree = tree
         self.title = title
-        self.filename = filename
+        self.filename = os.path.basename(filename)
         self._pre = None
 
     @property
