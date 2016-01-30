@@ -8,18 +8,6 @@ import crawl
 import container
 import epub
 
-"""
-Crawl WuxiaWorld novels and write chapters to current directory.
-
-As of 2015-12-20, completed translations include:
-  Stellar Transf., http://www.wuxiaworld.com/st-index/st-book-1-chapter-1
-  Coiling Dragon, http://www.wuxiaworld.com/cdindex-html/book-1-chapter-1
-  Dragon King + 7 Stars, http://www.wuxiaworld.com/master-index/dkwss-chapter-1
-  7 Killers, http://www.wuxiaworld.com/master-index/7-killers-chapter-1
-  Heroes Shed No Tears, http://www.wuxiaworld.com/master-index/prologue
-  Horizon, Bright Moon, Sabre, http://www.wuxiaworld.com/tymyd-index/prologue
-"""
-
 __version__ = '0.1'
 
 
