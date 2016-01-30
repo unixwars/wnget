@@ -1,17 +1,26 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
+"""
+Contains main functions for the commands in the ../bin directory
+"""
 import logging
 import optparse
 
 import crawl
 import container
 import epub
+from . import __version__
 
-__version__ = '0.1'
+
+def ctrl_c_wrapper(func):
+    def wrap():
+        try:
+            return func()
+        except KeyboardInterrupt:
+            print 'Exiting...'
+    return wrap
 
 
-def main():
+@ctrl_c_wrapper
+def wnget():
     p = optparse.OptionParser(
         usage="Usage: %prog [options] first_url [last_url]",
         version="wnget version %s" % __version__)
@@ -90,17 +99,52 @@ def main():
         epub.create_epub(opts.epub_title, chapts)
 
 
+@ctrl_c_wrapper
+def wnbook():
+    p = optparse.OptionParser(
+        usage="Usage: %prog [options] <index.html> <book title>",
+        version="wnget version %s" % __version__)
+
+    p.add_option(
+        '--filename', '-f',
+        default=None,
+        dest="ebook_filename",
+        help="Specify fileanme. Works out something from title by default")
+
+    p.add_option(
+        '--language', '-l',
+        default='en',
+        dest="language",
+        help="Specify language for ebook metadata")
+
+    p.add_option(
+        '--author', '-a',
+        default=None,
+        dest="author",
+        help="Specify author for ebook metadata")
+
+    p.add_option(
+        '--cover', '-c',
+        default=None,
+        dest="cover_image",
+        help="Specify cover image. Uses cover.jpg/png by default if found.")
+
+    opts, args = p.parse_args()
+    if len(args) != 2:
+        p.error("Index file and ebook title are mandatory!")
+
+    setup_logger()
+
+    index, title = args[0], args[1]
+    chapter_list = epub.load_chapters(index)
+    epub.create_epub(title, chapter_list, opts.ebook_filename,
+                     opts.language, opts.author, opts.cover_image)
+
+
 def setup_logger():
-    logger = logging.getLogger('__wnget__')
+    logger = logging.getLogger(__name__)
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(message)s')
     logger.setLevel(logging.INFO)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print 'Exiting...'
