@@ -86,8 +86,6 @@ def wnget():
     else:
         p.error("Incorrect number of arguments. Provide 1 or 2 URLs!")
 
-    setup_logger()
-
     crawler = crawl.Crawler(opts.next_str, opts.prev_str,
                             opts.title_class, opts.content_class)
 
@@ -133,19 +131,7 @@ def wnbook():
     if len(args) != 2:
         p.error("Index file and ebook title are mandatory!")
 
-    setup_logger()
-
     index_file, title = args[0], args[1]
-
     index = container.Index(filename=index_file)
     epub.create_epub(title, index.chapters, opts.ebook_filename,
                      opts.language, opts.author, opts.cover_image)
-
-
-def setup_logger():
-    logger = logging.getLogger(__name__)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(message)s')
-    logger.setLevel(logging.INFO)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)

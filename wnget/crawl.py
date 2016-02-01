@@ -25,6 +25,7 @@ class Crawler(object):
         self.prev_str = prev_str
         self.title_class = title_class
         self.content_class = content_class
+        self.logger = logging.getLogger(__name__)
 
     def crawl(self, url, last_url=None, with_navlinks=False,
               smart_titles=True, limit=0):
@@ -84,14 +85,13 @@ class Crawler(object):
 
     def _crawl(self, next_url, last_url, with_navlinks, smart_titles, limit):
         eventlet.monkey_patch()  # eventlet magic...
-        logger = logging.getLogger(__name__)
 
         chapters = []
         prev_url = None
         while next_url:
             fname = self._url_to_filename(next_url)
-            logger.info('URL: %s (%s%s)', next_url, fname,
-                        ' *' if os.path.isfile(fname) else '')
+            self.logger.info('URL: %s (%s%s)', next_url, fname,
+                             ' *' if os.path.isfile(fname) else '')
 
             try:
                 with eventlet.Timeout(DEFAULT_CONNECTION_TIMEOUT):
@@ -100,10 +100,10 @@ class Crawler(object):
                     next_url = None
                     limit -= 1
             except eventlet.Timeout:
-                logger.error('Timed out! (%s)', next_url)
+                self.logger.error('Timed out! (%s)', next_url)
                 break
-            except KeyboardInterrupt:
-                logger.info('Interrupted by user!')
+            except requests.exceptions.MissingSchema as e:
+                self.logger.error(e.message)
                 break
 
             tree = lxml.html.fromstring(page.content.decode('utf8'))
@@ -113,7 +113,7 @@ class Crawler(object):
                 c_tree = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
                 c_tree, next_url = self._process_nav(c_tree, with_navlinks)
             except IndexError:
-                logger.error("Crawling stopped. Last page was unexpected!")
+                self.logger.error("Crawling stopped. Last page unexpected!")
                 break
 
             if limit == 0 or self._is_same_url(last_url, prev_url):
