@@ -135,9 +135,10 @@ def wnbook():
 
     setup_logger()
 
-    index, title = args[0], args[1]
-    chapter_list = epub.load_chapters(index)
-    epub.create_epub(title, chapter_list, opts.ebook_filename,
+    index_file, title = args[0], args[1]
+
+    index = container.Index(filename=index_file)
+    epub.create_epub(title, index.chapters, opts.ebook_filename,
                      opts.language, opts.author, opts.cover_image)
 
 

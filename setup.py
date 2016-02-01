@@ -14,7 +14,9 @@ with open('wnget/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 with open(path.join(here, 'requirements.txt')) as f:
-    requires = filter(None, f.readlines())
+    req_install = filter(None, f.readlines())
+with open(path.join(here, 'requirements-dev.txt')) as f:
+    req_test = filter(None, f.readlines())
 
 setup(
     name='wnget',
@@ -36,8 +38,8 @@ setup(
     ],
 
     keywords='webscraper epub ebook webnovel',
-    install_requires=requires,
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    install_requires=req_install,
+    packages=find_packages(exclude=['contrib', 'doc', 'test*']),
     package_dir={'wnget': 'wnget'},
     package_data={
         '': ['LICENSE', 'README.md'],

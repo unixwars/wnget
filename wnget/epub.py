@@ -1,11 +1,7 @@
 import os
 import uuid
-import subprocess
-import tempfile
-import lxml.html
 
 from ebooklib import epub
-from container import Chapter, Index
 
 """
 Epub creation module.
@@ -18,9 +14,8 @@ COVER_PNG = 'cover.png'
 COVER_JPG = 'cover.jpg'
 
 
-def create_epub(ebook_title, chapter_list, ebook_filename=None,
+def create_epub(ebook_title, chapter_iter, ebook_filename=None,
                 language='en', author=None, cover_image=None):
-    assert all(map(lambda x: isinstance(x, Chapter), chapter_list))
     book = epub.EpubBook()
 
     # add metadata
@@ -39,7 +34,7 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
 
     # chapters
     epub_chapters = []
-    for c in chapter_list:
+    for c in chapter_iter:
         chapt = epub.EpubHtml(title=c.title,
                               file_name=c.xhtml_filename,
                               content=c.html, lang=language,
@@ -60,28 +55,8 @@ def create_epub(ebook_title, chapter_list, ebook_filename=None,
 
     if ebook_filename is None:
         ebook_filename = ebook_title.replace(' ', '-')
-        ebook_filename += '' if ebook_filename.endswith('.epub') else '.epub'
+    ebook_filename = ebook_filename.rstrip('.epub') + '.epub'
     epub.write_epub(ebook_filename, book, {})
-
-
-def test_create_epub():
-    "Test only runs/works/fails if epubcheck present"
-    try:
-        f, bookfile = tempfile.mkstemp(suffix='.epub', dir='/tmp')
-        test_chapter = Chapter(
-            filename='chapter.html',
-            title='title',
-            tree=lxml.html.fromstring('chapter'),
-            url='http://example.com/novel-chapter-1')
-        create_epub('test', [test_chapter], bookfile)
-        rc = subprocess.call(["epubcheck", bookfile])
-        os.unlink(bookfile)
-        assert rc == 0  # No errors
-    except OSError as e:
-        if e.errno == os.errno.ENOENT:
-            return  # handle file not found error.
-        else:
-            raise  # Something else
 
 
 def find_cover():
@@ -90,14 +65,3 @@ def find_cover():
     if os.path.isfile(COVER_JPG):
         return COVER_JPG
     return None
-
-
-def load_chapters(index_file):
-    chapters = []
-    index = Index(filename=index_file)
-    path = os.path.dirname(os.path.abspath(index_file))
-    for link in index.links:
-        fname = os.path.join(path, link.get('href'))
-        c = Chapter.from_file(fname, link.text)
-        chapters.append(c)
-    return chapters

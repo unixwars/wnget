@@ -61,6 +61,7 @@ class Index(_Container):
         self._dedupe()
 
         _Container.__init__(self, self.tree, title, filename)
+        self.dirname = os.path.dirname(os.path.abspath(filename))
         self._pre = lxml.etree.Element('h1')
         self._pre.text = self.title
 
@@ -98,3 +99,9 @@ class Index(_Container):
     @property
     def links(self):
         return self.tree.xpath('//a')
+
+    @property
+    def chapters(self):
+        for link in self.links:
+            fname = os.path.join(self.dirname, link.get('href'))
+            yield Chapter.from_file(fname, link.text)
