@@ -15,8 +15,6 @@ with open('wnget/__init__.py', 'r') as fd:
                         fd.read(), re.MULTILINE).group(1)
 with open(path.join(here, 'requirements.txt')) as f:
     req_install = filter(None, f.readlines())
-with open(path.join(here, 'requirements-dev.txt')) as f:
-    req_test = filter(None, f.readlines())
 
 setup(
     name='wnget',
@@ -37,6 +35,8 @@ setup(
     ],
 
     keywords='webscraper epub ebook webnovel',
+    setup_requires=['pytest-runner'] + req_install,
+    tests_require=['pytest', 'tox'] + req_install,
     install_requires=req_install,
     packages=find_packages(exclude=['contrib', 'doc', 'test*']),
     package_dir={'wnget': 'wnget'},
