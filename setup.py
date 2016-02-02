@@ -14,7 +14,7 @@ with open('wnget/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 with open(path.join(here, 'requirements.txt')) as f:
-    req_install = filter(None, f.readlines())
+    req_install = list(filter(None, f.readlines()))
 
 setup(
     name='wnget',
@@ -32,6 +32,7 @@ setup(
         'Topic :: Utilities',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ],
 
     keywords='webscraper epub ebook webnovel',

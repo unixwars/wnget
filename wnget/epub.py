@@ -2,6 +2,7 @@ import os
 import uuid
 
 from ebooklib import epub
+from .utils import safe_decode
 
 """
 Epub creation module.
@@ -20,10 +21,10 @@ def create_epub(ebook_title, chapter_iter, ebook_filename=None,
 
     # add metadata
     book.set_identifier(uuid.uuid1().urn)
-    book.set_title(ebook_title.decode('utf8'))
-    book.set_language(language.decode('utf8'))
+    book.set_title(safe_decode(ebook_title))
+    book.set_language(safe_decode(language))
     if author:
-        book.add_author(author.decode('utf8'))
+        book.add_author(safe_decode(author))
 
     if cover_image is None:
         cover_image = find_cover()

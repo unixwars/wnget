@@ -4,7 +4,9 @@ import lxml.html
 import requests
 import eventlet
 
-import container
+from . import container
+from .utils import safe_decode, is_same_url, url_to_filename
+
 
 NEXT_STR = 'Next Chapter'
 PREV_STR = 'Previous Chapter'
@@ -27,17 +29,11 @@ class Crawler(object):
         self.content_class = content_class
         self.logger = logging.getLogger(__name__)
 
-    def crawl(self, url, last_url=None, with_navlinks=False,
-              smart_titles=True, limit=0):
-        "Crawl given url, rewriting/deleting navigation links"
-
-        chapts = self._crawl(url, last_url, with_navlinks, smart_titles, limit)
-        return chapts
-
     def _get_title(self, tree, default_title='', heuristic=True):
-        # Wuxiaworld titles are inconsistent among creations. The ones
-        # inside the content, if present, tend to look better than the ones
-        # in H1 elements.
+        # There is no one standard for title formatting across
+        # webnovels. Ironically, the ones in the title containers tend
+        # to look worse than the ones in the contents. Hence the
+        # empiric precedence logic of this function.
         titles = tree.xpath('//*[@class="%s"]' % self.title_class)
         strongs = tree.xpath('//p/strong')
         bolds = tree.xpath('//p/b/span') or tree.xpath('//p/b')
@@ -57,11 +53,8 @@ class Crawler(object):
 
         return candidates[0].text_content().strip()
 
-    def _url_to_filename(self, url):
-        url = url or ''
-        url = url.strip().strip('/')
-        end = url.split('/')[-1]
-        return '%s.html' % (end) if end else '#'
+    def _get_content(self, tree):
+        return tree.xpath('//*[@class="%s"]' % self.content_class)[0]
 
     def _process_nav(self, tree, with_navlinks):
         """Process navigation links & find/rewrite/remove as appropriate"""
@@ -74,22 +67,21 @@ class Crawler(object):
 
         for node in next_nodes + prev_nodes:
             if with_navlinks and node.tag == 'a':
-                node.set('href', self.url_to_filename(node.get('href')))
+                node.set('href', url_to_filename(node.get('href')))
             elif not with_navlinks:
                 node.getparent().remove(node)
 
         return tree, next_url
 
-    def _is_same_url(self, a, b):
-        return a and b and a.strip().strip('/') == b.strip().strip('/')
-
-    def _crawl(self, next_url, last_url, with_navlinks, smart_titles, limit):
+    def crawl(self, next_url, last_url=None, with_navlinks=False,
+              smart_titles=True, limit=0):
+        "Crawl given url, rewriting/deleting navigation links if needed"
         eventlet.monkey_patch()  # eventlet magic...
 
         chapters = []
         prev_url = None
         while next_url:
-            fname = self._url_to_filename(next_url)
+            fname = url_to_filename(next_url)
             self.logger.info('URL: %s (%s%s)', next_url, fname,
                              ' *' if os.path.isfile(fname) else '')
 
@@ -109,17 +101,17 @@ class Crawler(object):
                 # End loop to return partial result
                 break
 
-            tree = lxml.html.fromstring(page.content.decode('utf8'))
+            tree = lxml.html.fromstring(safe_decode(page.content))
 
             try:
                 title = self._get_title(tree, fname, smart_titles)
-                c_tree = tree.xpath('//*[@class="%s"]' % self.content_class)[0]
+                c_tree = self._get_content(tree)
                 c_tree, next_url = self._process_nav(c_tree, with_navlinks)
             except IndexError:
                 self.logger.error("Crawling stopped. Last page unexpected!")
                 break
 
-            if limit == 0 or self._is_same_url(last_url, prev_url):
+            if limit == 0 or is_same_url(last_url, prev_url):
                 next_url = None
 
             c = container.Chapter(tree=c_tree, title=title, filename=fname,

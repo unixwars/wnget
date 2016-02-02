@@ -1,6 +1,8 @@
 import os
 import lxml.html
 
+from .utils import safe_decode
+
 
 class _Container(object):
     """Generic xhtml container"""
@@ -12,7 +14,8 @@ class _Container(object):
 
     @property
     def content(self):
-        self._html = lxml.etree.Element('html', xmlns="http://www.w3.org/1999/xhtml")
+        self._html = lxml.etree.Element(
+            'html', xmlns="http://www.w3.org/1999/xhtml")
         self._head = lxml.etree.SubElement(self._html, 'head')
         self._title = lxml.etree.SubElement(self._head, 'title')
         self._title.text = self.title
@@ -46,7 +49,7 @@ class Chapter(_Container):
     @classmethod
     def from_file(cls, fname, title):
         with open(fname) as f:
-            tree = lxml.html.fromstring(f.read().decode('utf8'))
+            tree = lxml.html.fromstring(safe_decode(f.read()))
             body = tree.xpath('//body')[0]
             div = list(body.iterchildren())[0]
 
@@ -66,10 +69,11 @@ class Index(_Container):
         self._pre.text = self.title
 
     def _load(self, filename):
-        self.tree = lxml.etree.Element('ul', style="list-style-type:none;padding:0;")
+        self.tree = lxml.etree.Element(
+            'ul', style="list-style-type:none;padding:0;")
         if os.path.isfile(filename):
             with open(filename, 'r') as f:
-                tree = lxml.html.fromstring(f.read().decode('utf8'))
+                tree = lxml.html.fromstring(safe_decode(f.read()))
                 links = tree.xpath('//a')
                 for link in links:
                     self.append(link.get('href'), link.text)

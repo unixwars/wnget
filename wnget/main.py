@@ -1,12 +1,11 @@
 """
-Contains main functions for the commands in the ../bin directory
+Contains main functions of console scripts
 """
-import logging
 import optparse
 
-import crawl
-import container
-import epub
+from . import crawl
+from . import container
+from . import epub
 from . import __version__
 
 
@@ -15,7 +14,7 @@ def ctrl_c_wrapper(func):
         try:
             return func()
         except KeyboardInterrupt:
-            print 'Exiting...'
+            print('Exiting...')
     return wrap
 
 
