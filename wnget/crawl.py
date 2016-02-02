@@ -105,6 +105,9 @@ class Crawler(object):
             except requests.exceptions.MissingSchema as e:
                 self.logger.error(e.message)
                 break
+            except KeyboardInterrupt:
+                # End loop to return partial result
+                break
 
             tree = lxml.html.fromstring(page.content.decode('utf8'))
 
