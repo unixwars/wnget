@@ -9,7 +9,7 @@ from . import crawl
 from . import container
 from . import epub
 from . import __version__
-from .utils import safe_decode, href_to_local
+from .utils import href_to_local
 
 
 def ctrl_c_wrapper(func):
@@ -165,5 +165,5 @@ def wnlocal():
         return tree.write(
             args[1], encoding='utf-8', method='html', pretty_print=True)
     else:
-        print lxml.etree.tostring(
-            tree, encoding='utf-8', method='html', pretty_print=True)
+        print(lxml.etree.tostring(
+            tree, encoding='utf-8', method='html', pretty_print=True))

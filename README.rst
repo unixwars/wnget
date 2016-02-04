@@ -35,7 +35,7 @@ Assuming you’re in the root of the project, just run:
 Usage examples
 --------------
 
-Each command has a _--help_ option detailing all valid arguments.
+Invoke each command without arguments to display help information.
 
 To scrape all chapters of a given web novel, following links, and saving
 each chapter in a diferent html file in the current directory:
