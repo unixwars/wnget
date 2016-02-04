@@ -9,6 +9,11 @@ while at the same time trying to provide sane defaults. The strings for
 the next/previous navigation links, as well as CSS class for
 title/content containers can be configured, among other settings.
 
+Besides the main *wnget* utility, the suite include *wnbook*, to
+generate ebooks from the downloaded contents, and *wnlocal*, to rewrite
+the links of html files that can be resolved to a local file using the
+same rules applied by *wnget*.
+
 Installation
 ------------
 
@@ -29,6 +34,8 @@ Assuming you’re in the root of the project, just run:
 
 Usage examples
 --------------
+
+Each command has a _--help_ option detailing all valid arguments.
 
 To scrape all chapters of a given web novel, following links, and saving
 each chapter in a diferent html file in the current directory:
@@ -69,3 +76,18 @@ image, and language/author metadata:
     $ wnbook ../index.html "I Shall Seal the Heavens (我欲封天)" \
       --filename=issth.epub --language=zh --author="Ergen (耳根)" \
       --cover ~/images/MengHao.png
+
+And finally, to rewrite links within a file so that they point to
+already downloaded resources, *wnlocal* can be used.
+
+Either to print the converted file to stdout:
+
+.. code-block:: shell
+
+    $ wnlocal introduction.html
+
+Or to write it back to disk:
+
+.. code-block:: shell
+
+    $ wnlocal introduction.html newfile.html
