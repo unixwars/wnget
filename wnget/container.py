@@ -1,45 +1,55 @@
 import os
-import lxml.html
+import lxml
+import lxml.html.builder as builder
 
 from .utils import safe_decode
 
 
-class _Container(object):
+class Container(object):
     """Generic xhtml container"""
     def __init__(self, tree, title, filename):
         self.tree = tree
         self.title = title
-        self.filename = os.path.basename(filename)
+        self.filename = filename
+        self.dirname = os.path.dirname(os.path.abspath(filename))
+        self.basename = os.path.basename(os.path.abspath(filename))
         self._pre = None
 
     @property
-    def content(self):
-        self._html = lxml.etree.Element(
-            'html', xmlns="http://www.w3.org/1999/xhtml")
-        self._head = lxml.etree.SubElement(self._html, 'head')
-        self._title = lxml.etree.SubElement(self._head, 'title')
-        self._title.text = self.title
-        self._meta = lxml.etree.SubElement(self._head, 'meta', charset='UTF-8')
-        self._body = lxml.etree.SubElement(self._html, 'body')
+    def body(self):
+        elem = lxml.etree.Element('body')
         if self._pre is not None:
-            self._body.append(self._pre)
-        self._body.append(self.tree)
-        return lxml.etree.ElementTree(self._html)
+            elem.append(self._pre)
+        elem.append(self.tree)
+        return elem
+
+    @property
+    def full_tree(self):
+        return builder.HTML(
+            builder.HEAD(
+                builder.TITLE(self.title),
+                builder.META(charset="utf-8")),
+            self.body)
 
     @property
     def html(self):
-        return lxml.etree.tostring(self.content, encoding='utf-8',
-                                   method='html', pretty_print=True)
+        return lxml.html.tostring(
+            self.full_tree, pretty_print=True, encoding='utf-8',
+            method='html', doctype='<!DOCTYPE html>')
+
+    @property
+    def xhtml_filename(self):
+        return self.filename.replace('.html', '.xhtml')
 
     def write(self):
-        return self.content.write(self.filename, encoding='utf-8',
-                                  method='html', pretty_print=True)
+        with open(self.filename, 'w') as f:
+            f.write(self.html)
 
 
-class Chapter(_Container):
+class Chapter(Container):
     """Chapters are what's kept after scraping web pages"""
     def __init__(self, tree, title, filename, url):
-        _Container.__init__(self, tree, title, filename)
+        Container.__init__(self, tree, title, filename)
         self.url = url
 
     @property
@@ -56,15 +66,14 @@ class Chapter(_Container):
         return cls(tree=div, title=title, filename=fname, url=fname)
 
 
-class Index(_Container):
+class Index(Container):
     """Generate index.html out of a list of chapters"""
     def __init__(self, chapters=[], title='Index', filename='index.html'):
         self._load(filename)
         self._extend(chapters)
         self._dedupe()
 
-        _Container.__init__(self, self.tree, title, filename)
-        self.dirname = os.path.dirname(os.path.abspath(filename))
+        Container.__init__(self, self.tree, title, filename)
         self._pre = lxml.etree.Element('h1')
         self._pre.text = self.title
 
