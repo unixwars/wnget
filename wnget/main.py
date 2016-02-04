@@ -1,12 +1,15 @@
 """
 Contains main functions of console scripts
 """
+import os
 import optparse
+import lxml.html
 
 from . import crawl
 from . import container
 from . import epub
 from . import __version__
+from .utils import safe_decode, href_to_local
 
 
 def ctrl_c_wrapper(func):
@@ -134,3 +137,33 @@ def wnbook():
     index = container.Index(filename=index_file)
     epub.create_epub(title, index.chapters, opts.ebook_filename,
                      opts.language, opts.author, opts.cover_image)
+
+
+@ctrl_c_wrapper
+def wnlocal():
+    p = optparse.OptionParser(
+        usage="Usage: %prog <input_file.html> [output_file.html]",
+        version="wnget version %s" % __version__)
+
+    opts, args = p.parse_args()
+    if len(args) < 1:
+        p.error("At least an input file must be specified. ")
+
+    filename = args[0]
+    dirname = os.path.dirname(os.path.abspath(filename))
+
+    tree = lxml.html.parse(filename)
+    links = tree.xpath('//a')
+    for link in links:
+        in_link = link.get('href')
+        out_link = href_to_local(in_link, dirname)
+        if not (in_link and out_link):
+            continue
+        link.set('href', out_link)
+
+    if len(args) > 1:
+        return tree.write(
+            args[1], encoding='utf-8', method='html', pretty_print=True)
+    else:
+        print lxml.etree.tostring(
+            tree, encoding='utf-8', method='html', pretty_print=True)

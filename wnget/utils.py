@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -18,3 +19,11 @@ def url_to_filename(url):
     url = url or '#'
     url = url.strip().strip('/').rstrip('.html') + '.html'
     return url.split('/')[-1]
+
+
+def href_to_local(href, dirname='.', force=False):
+    """Maps a link to a local resource if present (or force==True)"""
+    fname = url_to_filename(href)
+    if os.path.isfile(os.path.join(dirname, fname)) or force:
+        return fname
+    return href

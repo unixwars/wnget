@@ -50,6 +50,7 @@ setup(
         'console_scripts': [
             'wnget=wnget.main:wnget',
             'wnbook=wnget.main:wnbook',
+            'wnlocal=wnget.main:wnlocal',
         ],
     },
 )

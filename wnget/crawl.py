@@ -35,7 +35,7 @@ class Crawler(object):
         # to look worse than the ones in the contents. Hence the
         # empiric precedence logic of this function.
         titles = tree.xpath('//*[@class="%s"]' % self.title_class)
-        strongs = tree.xpath('//p/strong')
+        strongs = tree.xpath('//strong')
         bolds = tree.xpath('//p/b/span') or tree.xpath('//p/b')
         candidates = []
 
@@ -50,11 +50,12 @@ class Crawler(object):
             # cleanup candidates, and leave "best" first
             ref_sl = candidates[0].sourceline + TITLE_DELTA
             candidates = [c for c in candidates[::-1] if c.sourceline < ref_sl]
+            candidates = list(filter(lambda x: x.text_content(), candidates))
 
         return candidates[0].text_content().strip()
 
     def _get_content(self, tree):
-        return tree.xpath('//*[@class="%s"]' % self.content_class)[0]
+        return tree.xpath('//*[contains(@class,"%s")]' % self.content_class)[0]
 
     def _process_nav(self, tree, with_navlinks):
         """Process navigation links & find/rewrite/remove as appropriate"""
@@ -65,11 +66,18 @@ class Crawler(object):
             or tree.xpath("//p[starts-with(., '%s')]" % self.prev_str)
         next_url = next_nodes[0].get('href') if next_nodes else None
 
+        same_line_parents = []  # proper nav containers, if present
         for node in next_nodes + prev_nodes:
-            if with_navlinks and node.tag == 'a':
+            if not with_navlinks:
+                p = node.getparent()
+                if p.sourceline == node.sourceline:
+                    same_line_parents.append(p)
+                p.remove(node)
+            elif with_navlinks and node.tag == 'a':
                 node.set('href', url_to_filename(node.get('href')))
-            elif not with_navlinks:
-                node.getparent().remove(node)
+
+        for node in set(same_line_parents):
+            node.getparent().remove(node)
 
         return tree, next_url
 
@@ -102,7 +110,6 @@ class Crawler(object):
                 break
 
             tree = lxml.html.fromstring(safe_decode(page.content))
-
             try:
                 title = self._get_title(tree, fname, smart_titles)
                 c_tree = self._get_content(tree)

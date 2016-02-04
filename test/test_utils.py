@@ -1,6 +1,13 @@
+import os
 import sys
+import tempfile
 
-from wnget.utils import safe_decode, is_same_url, url_to_filename
+from wnget.utils import (
+    safe_decode,
+    is_same_url,
+    url_to_filename,
+    href_to_local
+)
 
 
 def test_is_same_url():
@@ -26,3 +33,14 @@ def test_safe_decode():
     else:
         # PY2: b'' == str != unicode, so sb is unicode as well
         assert su == sb == ss == u
+
+
+def test_href_to_local():
+    f, html_f = tempfile.mkstemp(suffix='.html', dir='/tmp')
+    local_href = os.path.basename(html_f)
+    href = 'http://example.com/' + local_href
+
+    assert href_to_local(href, '/', False) == href
+    assert href_to_local(href, '/', True) == local_href
+    assert href_to_local(href, '/tmp', False) == local_href
+    os.unlink(html_f)
