@@ -2,8 +2,8 @@
 Contains main functions of console scripts
 """
 import os
-import optparse
 import lxml.html
+import configargparse
 
 from . import crawl
 from . import container
@@ -23,76 +23,79 @@ def ctrl_c_wrapper(func):
 
 @ctrl_c_wrapper
 def wnget():
-    p = optparse.OptionParser(
-        usage="Usage: %prog [options] first_url [last_url]",
-        version="wnget version %s" % __version__)
+    cfg_files = ['./wnget.conf', '~/.wnget.conf', '/etc/wnget.conf']
+    p = configargparse.ArgParser(default_config_files=cfg_files)
 
-    p.add_option(
-        '--keeplinks', '-k',
+    p.add_argument('first_url', help='first URL to crawl')
+    p.add_argument(
+        'last_url',
+        nargs='?',
+        help='optional last URL to crawl (stops after reaching)')
+
+    p.add_argument(
+        '-s', '--settings',
+        is_config_file=True,
+        help='file path of config file')
+
+    p.add_argument(
+        '-k', '--keeplinks',
         action="store_true",
         default=False,
-        dest="navlinks",
-        help="Rewrite and keep navigation links in HTML content.")
+        dest="keeplinks",
+        help="rewrite and keep navigation links in HTML content")
 
-    p.add_option(
-        '--firsttitle', '-f',
-        action="store_true",
-        default=False,
-        dest="firsttitle",
-        help="Keep first title match instead of trying to be smart about it")
+    p.add_argument(
+        '-f', '--firsttitle',
+        action="store_false",
+        default=True,
+        dest="smart_titles",
+        help="keep first title match instead of trying to be smart about it")
 
-    p.add_option(
-        '--next', '-n',
+    p.add_argument(
+        '-n', '--next',
         default=crawl.NEXT_STR,
         dest="next_str",
-        help='Specify next link caption. Default: "%s"' % crawl.NEXT_STR)
+        help="specify next link caption (default: '%s')" % crawl.NEXT_STR)
 
-    p.add_option(
-        '--previous', '-p',
+    p.add_argument(
+        '-p', '--previous',
         default=crawl.PREV_STR,
         dest="prev_str",
-        help='Specify previous link caption. Default: "%s"' % crawl.PREV_STR)
+        help="specify previous link caption (default: '%s')" % crawl.PREV_STR)
 
-    p.add_option(
-        '--titleclass', '-t',
+    p.add_argument(
+        '-t', '--titleclass',
         default=crawl.T_CLASS,
         dest="title_class",
-        help="Specify title container class. Default: %s." % crawl.T_CLASS)
+        help="specify title container class (default: '%s')" % crawl.T_CLASS)
 
-    p.add_option(
-        '--contentclass', '-c',
+    p.add_argument(
+        '-c', '--contentclass',
         default=crawl.C_CLASS,
         dest="content_class",
-        help="Specify content container class. Default: %s." % crawl.C_CLASS)
+        help="specify content container class (default: '%s')" % crawl.C_CLASS)
 
-    p.add_option(
-        '--epub', '-e',
+    p.add_argument(
+        '-e', '--epub',
         default=None,
         dest="epub_title",
-        help="Create Epub with this title. Will use cover.jpg/png if found.")
+        help="create Epub with this title (will use cover.jpg/png if found)")
 
-    p.add_option(
-        '--limit', '-l',
+    p.add_argument(
+        '-l', '--limit',
         default=0,
-        type="int",
+        type=int,
         dest="limit",
-        help="Crawl at most N pages.")
+        help="crawl at most N pages")
 
-    opts, args = p.parse_args()
-
-    first_url, last_url = None, None
-    if len(args) == 2:
-        first_url, last_url = args[0], args[1]
-    elif len(args) == 1:
-        first_url = args[0]
-    else:
-        p.error("Incorrect number of arguments. Provide 1 or 2 URLs!")
+    p.add_argument('-v', '--version', action='version', version=__version__)
+    opts = p.parse_args()
 
     crawler = crawl.Crawler(opts.next_str, opts.prev_str,
-                            opts.title_class, opts.content_class)
+                            opts.title_class, opts.content_class,
+                            opts.keeplinks, opts.smart_titles)
 
-    chapts = crawler.crawl(first_url, last_url, opts.navlinks,
-                           not opts.firsttitle, opts.limit)
+    chapts = crawler.crawl(opts.first_url, opts.last_url, opts.limit)
 
     container.Index(chapts).write()
     if opts.epub_title:
@@ -101,58 +104,57 @@ def wnget():
 
 @ctrl_c_wrapper
 def wnbook():
-    p = optparse.OptionParser(
-        usage="Usage: %prog [options] <index.html> <book title>",
-        version="wnget version %s" % __version__)
+    p = configargparse.ArgParser()
+    p.add_argument('index_file', help='index.html file.')
+    p.add_argument('book_title', help='Book title.')
 
-    p.add_option(
+    p.add_argument(
         '--filename', '-f',
         default=None,
         dest="ebook_filename",
-        help="Specify fileanme. Works out something from title by default")
+        help="specify fileanme (works out something from title by default)")
 
-    p.add_option(
+    p.add_argument(
         '--language', '-l',
         default='en',
         dest="language",
-        help="Specify language for ebook metadata")
+        help="specify language for ebook metadata")
 
-    p.add_option(
+    p.add_argument(
         '--author', '-a',
         default=None,
         dest="author",
-        help="Specify author for ebook metadata")
+        help="specify author for ebook metadata")
 
-    p.add_option(
+    p.add_argument(
         '--cover', '-c',
         default=None,
         dest="cover_image",
-        help="Specify cover image. Uses cover.jpg/png by default if found.")
+        help="specify cover image (uses cover.jpg/png by default if found)")
 
-    opts, args = p.parse_args()
-    if len(args) != 2:
-        p.error("Index file and ebook title are mandatory!")
+    p.add_argument('-v', '--version', action='version', version=__version__)
+    opts = p.parse_args()
 
-    index_file, title = args[0], args[1]
-    index = container.Index(filename=index_file)
-    epub.create_epub(title, index.chapters, opts.ebook_filename,
+    index = container.Index(filename=opts.index_file)
+    epub.create_epub(opts.book_title, index.chapters, opts.ebook_filename,
                      opts.language, opts.author, opts.cover_image)
 
 
 @ctrl_c_wrapper
 def wnlocal():
-    p = optparse.OptionParser(
-        usage="Usage: %prog <input_file.html> [output_file.html]",
-        version="wnget version %s" % __version__)
+    p = configargparse.ArgParser()
+    p.add_argument('input_file', help='Input html file.')
+    p.add_argument(
+        'output_file',
+        help='output file (defaults to stdout)',
+        nargs='?')
 
-    opts, args = p.parse_args()
-    if len(args) < 1:
-        p.error("At least an input file must be specified. ")
+    p.add_argument('-v', '--version', action='version', version=__version__)
+    opts = p.parse_args()
 
-    filename = args[0]
-    dirname = os.path.dirname(os.path.abspath(filename))
+    dirname = os.path.dirname(os.path.abspath(opts.input_file))
 
-    tree = lxml.html.parse(filename)
+    tree = lxml.html.parse(opts.input_file)
     links = tree.xpath('//a')
     for link in links:
         in_link = link.get('href')
@@ -161,9 +163,11 @@ def wnlocal():
             continue
         link.set('href', out_link)
 
-    if len(args) > 1:
-        return tree.write(
-            args[1], encoding='utf-8', method='html', pretty_print=True)
-    else:
-        print(lxml.etree.tostring(
-            tree, encoding='utf-8', method='html', pretty_print=True))
+    def prn(*args, **kwargs):
+        print(lxml.etree.tostring(*args, **kwargs))
+
+    arg, fn = tree, prn
+    if opts.output_file:
+        arg, fn = opts.output_file, tree.write
+
+    return fn(arg, encoding='utf-8', method='html', pretty_print=True)

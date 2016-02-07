@@ -22,67 +22,66 @@ class Crawler(object):
     caption is specified upon creation.
     """
     def __init__(self, next_str=NEXT_STR, prev_str=PREV_STR,
-                 title_class=T_CLASS, content_class=C_CLASS):
+                 title_class=T_CLASS, content_class=C_CLASS,
+                 with_navlinks=False, smart_titles=True):
         self.next_str = next_str
         self.prev_str = prev_str
         self.title_class = title_class
         self.content_class = content_class
         self.logger = logging.getLogger(__name__)
+        self.keeplinks = False
+        self.smart_titles = True
 
-    def _get_title(self, tree, default_title='', heuristic=True):
+    def _get_title(self, tree, default_title=''):
         # There is no one standard for title formatting across
         # webnovels. Ironically, the ones in the title containers tend
         # to look worse than the ones in the contents. Hence the
         # empiric precedence logic of this function.
-        titles = tree.xpath('//*[@class="%s"]' % self.title_class)
+        page_title = tree.xpath('//title')
+        titles = tree.xpath('//*[contains(@class,"%s")]' % self.title_class)
         strongs = tree.xpath('//strong')
         bolds = tree.xpath('//p/b/span') or tree.xpath('//p/b')
-        candidates = []
+        candidates = [x[0] for x in (titles, page_title, strongs, bolds) if x]
 
-        if titles:
-            candidates.append(titles[0])
-        if strongs:
-            candidates.append(strongs[0])
-        if bolds:
-            candidates.append(bolds[0])
-
-        if heuristic:
+        if self.smart_titles:
             # cleanup candidates, and leave "best" first
             ref_sl = candidates[0].sourceline + TITLE_DELTA
             candidates = [c for c in candidates[::-1] if c.sourceline < ref_sl]
             candidates = list(filter(lambda x: x.text_content(), candidates))
+
+        if default_title:
+            candidates.append(default_title)
 
         return candidates[0].text_content().strip()
 
     def _get_content(self, tree):
         return tree.xpath('//*[contains(@class,"%s")]' % self.content_class)[0]
 
-    def _process_nav(self, tree, with_navlinks):
+    def _process_nav(self, tree):
         """Process navigation links & find/rewrite/remove as appropriate"""
+        nexts = tree.xpath("//a[text()[contains(., '%s')]]" % self.next_str) \
+            or tree.xpath("//p[text()[contains(., '%s')]]" % self.next_str)
+        prevs = tree.xpath("//a[text()[contains(., '%s')]]" % self.prev_str) \
+            or tree.xpath("//p[text()[contains(., '%s')]]" % self.prev_str)
+        next_url = nexts[0].get('href') if nexts else None
 
-        next_nodes = tree.xpath("//a[starts-with(., '%s')]" % self.next_str) \
-            or tree.xpath("//p[starts-with(., '%s')]" % self.next_str)
-        prev_nodes = tree.xpath("//a[starts-with(., '%s')]" % self.prev_str) \
-            or tree.xpath("//p[starts-with(., '%s')]" % self.prev_str)
-        next_url = next_nodes[0].get('href') if next_nodes else None
-
-        same_line_parents = []  # proper nav containers, if present
-        for node in next_nodes + prev_nodes:
-            if not with_navlinks:
+        same_line_parents = []  # infer if a proper nav container is
+        for node in nexts + prevs:
+            if not self.keeplinks:
                 p = node.getparent()
                 if p.sourceline == node.sourceline:
                     same_line_parents.append(p)
                 p.remove(node)
-            elif with_navlinks and node.tag == 'a':
+            elif self.keeplinks and node.tag == 'a':
                 node.set('href', url_to_filename(node.get('href')))
 
-        for node in set(same_line_parents):
-            node.getparent().remove(node)
+        if not self.keeplinks:
+            for node in set(same_line_parents):
+                node.getparent().remove(node)
 
         return tree, next_url
 
-    def crawl(self, next_url, last_url=None, with_navlinks=False,
-              smart_titles=True, limit=0):
+    def crawl(self, next_url, last_url=None, limit=0):
         "Crawl given url, rewriting/deleting navigation links if needed"
         eventlet.monkey_patch()  # eventlet magic...
 
@@ -111,9 +110,9 @@ class Crawler(object):
 
             tree = lxml.html.fromstring(safe_decode(page.content))
             try:
-                title = self._get_title(tree, fname, smart_titles)
+                title = self._get_title(tree, fname)
                 c_tree = self._get_content(tree)
-                c_tree, next_url = self._process_nav(c_tree, with_navlinks)
+                c_tree, next_url = self._process_nav(c_tree)
             except IndexError:
                 self.logger.error("Crawling stopped. Last page unexpected!")
                 break

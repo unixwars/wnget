@@ -16,7 +16,8 @@ def test_create_epub():
             title='title',
             tree=lxml.html.fromstring('chapter'),
             url='http://example.com/novel-chapter-1')
-        create_epub('test', [test_chapter], bookfile)
+        create_epub('test', [test_chapter], bookfile,
+                    author="foo", cover_image=None)
         rc = subprocess.call(["epubcheck", bookfile])
         os.unlink(bookfile)
         assert rc == 0  # No errors

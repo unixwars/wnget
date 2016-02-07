@@ -43,7 +43,7 @@ setup(
     package_dir={'wnget': 'wnget'},
     package_data={
         '': ['LICENSE', 'README.md'],
-        'wnget': ['templates/*'],
+        'wnget': ['data/*'],
     },
     include_package_data=True,
     entry_points={

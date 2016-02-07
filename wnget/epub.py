@@ -9,7 +9,7 @@ Epub creation module.
 """
 
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_PATH = os.path.join(SRC_PATH, "templates")
+TEMPLATE_PATH = os.path.join(SRC_PATH, "data")
 NAV_CSS = os.path.join(TEMPLATE_PATH, 'nav.css')
 COVER_PNG = 'cover.png'
 COVER_JPG = 'cover.jpg'
@@ -26,9 +26,7 @@ def create_epub(ebook_title, chapter_iter, ebook_filename=None,
     if author:
         book.add_author(safe_decode(author))
 
-    if cover_image is None:
-        cover_image = find_cover()
-
+    cover_image = cover_image or find_cover()
     if cover_image:
         cover_fname = os.path.basename(cover_image)
         book.set_cover(cover_fname, open(cover_image, 'rb').read())
@@ -54,8 +52,7 @@ def create_epub(ebook_title, chapter_iter, ebook_filename=None,
     book.add_item(nav_css)
     book.spine = ['nav'] + epub_chapters
 
-    if ebook_filename is None:
-        ebook_filename = ebook_title.replace(' ', '-')
+    ebook_filename = ebook_filename or ebook_title.replace(' ', '-')
     ebook_filename = ebook_filename.rstrip('.epub') + '.epub'
     epub.write_epub(ebook_filename, book, {})
 
