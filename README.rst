@@ -37,8 +37,13 @@ Usage examples
 
 Invoke each command without arguments to display help information.
 
+The scraper looks for a given CSS class in the title and content containers,
+and those can be set manually to suit your web novel site of choice. It also
+looks for links with default strings to find the next and previous chapters,
+and this can also be set by hand.
+
 To scrape all chapters of a given web novel, following links, and saving
-each chapter in a diferent html file in the current directory:
+each chapter in a different html file in the current directory:
 
 .. code-block:: shell
 
@@ -53,7 +58,7 @@ is retrieved, and generate an EPUB with the loot:
       http://example.com/first_chapter_link  \
       http://example.com/first_chapter_link
 
-Adittionally, the ebook functionality can be used directly through the
+Additionally, the ebook functionality can be used directly through the
 *wnbook* standalone utility. Just provide the HTML index file and a
 name for the book, and it will generate an ebook with all referenced
 resources in the working directory:
