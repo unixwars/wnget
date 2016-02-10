@@ -1,0 +1,21 @@
+# Scraping settings for some known sites
+default: &default
+  keeplinks: no
+  firsttitle: no
+  next: "Next Chapter"
+  previous: "Previous Chapter"
+  titleclass: entry-title
+  contentclass: entry-content
+  epub: default_ebook
+  limit: 0 # No limit if < 1
+
+wuxiaworld.com:
+  <<: *default
+
+translationnations.com:
+  <<: *default
+
+novelsnao.com:
+  <<: *default
+  contentclass: CommonWhiteTypeOne
+#  removeclass: BlogDate meta PrevNextChapter

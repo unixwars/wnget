@@ -1,2 +1,2 @@
 include README.md LICENSE requirements.txt
-include wnget/templates/*
+include wnget/data/*

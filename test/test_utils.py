@@ -6,7 +6,8 @@ from wnget.utils import (
     safe_decode,
     is_same_url,
     url_to_filename,
-    href_to_local
+    href_to_local,
+    get_site_defaults,
 )
 
 
@@ -44,3 +45,14 @@ def test_href_to_local():
     assert href_to_local(href, '/', True) == local_href
     assert href_to_local(href, '/tmp', False) == local_href
     os.unlink(html_f)
+
+
+def test_get_site_defaults():
+    default = get_site_defaults(None)
+    wuxia = get_site_defaults('http://www.wuxiaworld.com')
+    nnao1 = get_site_defaults('http://www.novelsnao.com')
+    nnao2 = get_site_defaults('http://novelsnao.com')
+
+    assert default == wuxia
+    assert nnao1 == nnao2
+    assert nnao1['contentclass'] == "CommonWhiteTypeOne"

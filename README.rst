@@ -32,6 +32,69 @@ Assuming you’re in the root of the project, just run:
 
     $ pip install -e .
 
+Configuration
+-------------
+
+Any argument that starts with '--' can also be set in a config file
+(./wnget.conf or ~/.wnget.conf or specified via -s). The
+recognized syntax for setting (key, value) pairs is based on the INI and YAML
+formats (e.g. key=value or foo=TRUE). If an argument is specified in more than
+one  place, then commandline values override config file values which override
+defaults.
+
+The default configuration looks like this:
+
+.. code-block:: yaml
+
+  keeplinks: no
+  firsttitle: no
+  next: "Next Chapter"
+  previous: "Previous Chapter"
+  titleclass: entry-title
+  contentclass: entry-content
+  epub: default_ebook
+  limit: 0 # No limit if < 1
+
+Since every web novel site will have a unique theme, it is unlikely the
+default configurations shipped with _wnget_ will work out of the box (unless
+you happen to be addicted to the same ones as yours truly). Feel free to
+extend data/sites.yaml for your favorite sites and issue a pull request.
+
+Usage
+-----
+
+.. code-block:: shell
+
+  $ wnget --help
+  usage: wnget [-h] [-s file] [-k] [-f] [-n caption] [-p caption] [-t css_class]
+               [-c css_class] [-e title] [-l N] [-v]
+               first_url [last_url]
+
+  positional arguments:
+    first_url             first URL to crawl
+    last_url              optional last URL to crawl (stops after reaching)
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -s file, --settings file
+                          config file path
+    -k, --keeplinks       rewrite and keep navigation links in HTML content
+    -f, --firsttitle      keep first title match instead of trying to be smart
+                          about it
+    -n caption, --next caption
+                          next link caption (default: 'Next Chapter')
+    -p caption, --previous caption
+                          previous link caption (default: 'Previous Chapter')
+    -t css_class, --titleclass css_class
+                          title container class (default: 'entry-title')
+    -c css_class, --contentclass css_class
+                          content container class (default: 'entry-content')
+    -e title, --epub title
+                          create Epub with this title (will use cover.jpg/png if
+                          found)
+    -l N, --limit N       crawl at most N pages
+    -v, --version         show program's version number and exit
+
 Usage examples
 --------------
 
@@ -96,3 +159,12 @@ Or to write it back to disk:
 .. code-block:: shell
 
     $ wnlocal introduction.html newfile.html
+
+
+TODO
+----
+
++ Make content selection more flexible: by tag, class, caption, or xpath.
++ Add option for elements to be removed during the parsing stage.
++ Add interactive title selection mode (and ability to repeat choice).
++ In-content image support (download, and store locally).
