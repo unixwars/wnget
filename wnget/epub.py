@@ -9,8 +9,8 @@ Epub creation module.
 """
 
 SRC_PATH = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_PATH = os.path.join(SRC_PATH, "data")
-NAV_CSS = os.path.join(TEMPLATE_PATH, 'nav.css')
+DATA_PATH = os.path.join(SRC_PATH, "data")
+NAV_CSS = os.path.join(DATA_PATH, 'nav.css')
 COVER_PNG = 'cover.png'
 COVER_JPG = 'cover.jpg'
 

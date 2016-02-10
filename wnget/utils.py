@@ -1,5 +1,14 @@
 import os
 import sys
+import logging
+import yaml
+
+
+SRC_PATH = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(SRC_PATH, "data")
+CFG_PATH = os.path.join(DATA_PATH, 'sites.yaml')
+
+logger = logging.getLogger(__name__)
 
 
 def safe_decode(st):
@@ -27,3 +36,18 @@ def href_to_local(href, dirname='.', force=False):
     if os.path.isfile(os.path.join(dirname, fname)) or force:
         return fname
     return href
+
+
+def get_site_defaults(url=None):
+    """Get default parameters to processs a given site"""
+    if url and not url.startswith('http'):
+        url = None
+
+    with open(CFG_PATH, 'r') as f:
+        cfg = yaml.safe_load(f)
+
+    key = None
+    if url:
+        netloc = url.split('/')[2]
+        key = '.'.join(netloc.split('.')[-2:])  # Just second level domain
+    return cfg.get(key, cfg['default'])

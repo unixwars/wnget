@@ -3,3 +3,4 @@ lxml>=3.5
 eventlet>=0.18
 ebooklib>=0.15
 configargparse>=0.10
+pyyaml>=3
